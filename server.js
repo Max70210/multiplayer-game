@@ -18,41 +18,71 @@ io.on("connection", (socket) => {
 
         if (!rooms[roomCode]) {
             rooms[roomCode] = {
-                players: {},
+                players: [],
                 host: socket.id,
-                secretNumber: null,
-                gameActive: false
+                number: null,
+                attempts: {},
+                gameStarted: false
             };
         }
 
-        rooms[roomCode].players[socket.id] = {
-            name,
-            attempts: 0
-        };
-
-        io.to(roomCode).emit("updatePlayers", {
-            players: rooms[roomCode].players,
-            host: rooms[roomCode].host
+        rooms[roomCode].players.push({
+            id: socket.id,
+            name: name
         });
+
+        io.to(roomCode).emit("updatePlayers", rooms[roomCode].players);
     });
 
     socket.on("startGame", (roomCode) => {
 
-        if (!rooms[roomCode]) return;
+        const room = rooms[roomCode];
+        if (!room) return;
 
-        if (socket.id === rooms[roomCode].host) {
+        room.number = Math.floor(Math.random() * 100) + 1;
+        room.gameStarted = true;
+        room.attempts = {};
 
-            rooms[roomCode].secretNumber = Math.floor(Math.random() * 100) + 1;
-            rooms[roomCode].gameActive = true;
+        io.to(roomCode).emit("gameStarted");
+    });
 
-            for (let id in rooms[roomCode].players) {
-                rooms[roomCode].players[id].attempts = 0;
-            }
+    socket.on("guess", ({ roomCode, guess }) => {
 
-            io.to(roomCode).emit("gameStarted");
+        const room = rooms[roomCode];
+        if (!room || !room.gameStarted) return;
+
+        if (!room.attempts[socket.id]) {
+            room.attempts[socket.id] = 0;
+        }
+
+        room.attempts[socket.id]++;
+
+        if (guess == room.number) {
+
+            const winnerAttempts = room.attempts[socket.id];
+
+            io.to(roomCode).emit("gameOver", {
+                winnerId: socket.id,
+                winnerAttempts
+            });
+
+            room.gameStarted = false;
+
+        } else if (guess < room.number) {
+            socket.emit("hint", "Too Low!");
+        } else {
+            socket.emit("hint", "Too High!");
         }
     });
 
+    socket.on("disconnect", () => {
+        for (let roomCode in rooms) {
+            rooms[roomCode].players =
+                rooms[roomCode].players.filter(p => p.id !== socket.id);
+
+            io.to(roomCode).emit("updatePlayers", rooms[roomCode].players);
+        }
+    });
 });
 
 server.listen(process.env.PORT || 3000, () => {
