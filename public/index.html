@@ -2,109 +2,162 @@
 <html>
 <head>
     <title>Multiplayer Game</title>
+
+    <style>
+        body {
+            font-family: Arial;
+            transition: 0.3s;
+        }
+
+        .dark {
+            background: #111;
+            color: white;
+        }
+
+        button {
+            padding: 6px 12px;
+            cursor: pointer;
+            margin: 4px;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+        }
+    </style>
 </head>
+
 <body>
 
 <h2>Join Room</h2>
+
 <input id="nameInput" placeholder="Your Name">
 <input id="roomInput" placeholder="Room Code">
 <button onclick="joinRoom()">Join</button>
+<button onclick="toggleDark()">Toggle Dark</button>
 
 <h3>Players</h3>
 <ul id="playersList"></ul>
+
+<h3>Scoreboard</h3>
+<ul id="scoreboard"></ul>
 
 <button id="startBtn" style="display:none;" onclick="startGame()">Start Game</button>
 
 <h3 id="gameStatus"></h3>
 
+<div id="gameArea"></div>
+
+<button id="playAgainBtn" style="display:none;" onclick="playAgain()">Play Again</button>
+
 <script src="/socket.io/socket.io.js"></script>
 <script>
-const socket = io();
-let currentRoom = "";
-let myId = "";
+    const socket = io();
 
-socket.on("connect", () => {
-    myId = socket.id;
-});
+    let currentRoom = "";
+    let myId = "";
 
-function joinRoom() {
-    const name = document.getElementById("nameInput").value;
-    const room = document.getElementById("roomInput").value;
-
-    if (!name || !room) return;
-
-    currentRoom = room;
-
-    socket.emit("joinRoom", {
-        roomCode: room,
-        name: name
-    });
-}
-
-socket.on("updatePlayers", (players) => {
-
-    const list = document.getElementById("playersList");
-    list.innerHTML = "";
-
-    players.forEach((player, index) => {
-        const li = document.createElement("li");
-
-        if (index === 0)
-            li.textContent = player.name + " (Host)";
-        else
-            li.textContent = player.name;
-
-        list.appendChild(li);
+    socket.on("connect", () => {
+        myId = socket.id;
     });
 
-    if (players.length > 0 && players[0].id === myId) {
-        document.getElementById("startBtn").style.display = "block";
+    function joinRoom() {
+        const name = document.getElementById("nameInput").value;
+        const room = document.getElementById("roomInput").value;
+
+        if (!name || !room) return;
+
+        currentRoom = room;
+
+        socket.emit("joinRoom", { roomCode: room, name: name });
     }
-});
 
-function startGame() {
-    socket.emit("startGame", currentRoom);
-}
+    socket.on("updatePlayers", (players) => {
 
-socket.on("gameStarted", () => {
+        const list = document.getElementById("playersList");
+        list.innerHTML = "";
 
-    document.getElementById("gameStatus").textContent =
-        "Game Started! Guess a number (1-100)";
+        players.forEach((player, index) => {
+            const li = document.createElement("li");
 
-    const input = document.createElement("input");
-    input.id = "guessInput";
-    input.placeholder = "Enter guess";
+            if (index === 0)
+                li.textContent = player.name + " (Host)";
+            else
+                li.textContent = player.name;
 
-    const btn = document.createElement("button");
-    btn.textContent = "Submit Guess";
-
-    btn.onclick = () => {
-        const guess = document.getElementById("guessInput").value;
-
-        socket.emit("guess", {
-            roomCode: currentRoom,
-            guess: guess
+            list.appendChild(li);
         });
-    };
 
-    document.body.appendChild(input);
-    document.body.appendChild(btn);
-});
+        if (players[0].id === myId)
+            document.getElementById("startBtn").style.display = "block";
+    });
 
-socket.on("hint", (msg) => {
-    document.getElementById("gameStatus").textContent = msg;
-});
+    socket.on("updateScoreboard", (wins) => {
+        const board = document.getElementById("scoreboard");
+        board.innerHTML = "";
 
-socket.on("gameOver", (winnerId, attempts) => {
+        for (let player in wins) {
+            const li = document.createElement("li");
+            li.textContent = player + " : " + wins[player] + " wins";
+            board.appendChild(li);
+        }
+    });
 
-    if (winnerId === myId) {
-        document.getElementById("gameStatus").textContent =
-            "YOU WON in " + attempts + " attempts!";
-    } else {
-        document.getElementById("gameStatus").textContent =
-            "Game Over! Someone guessed it.";
+    function startGame() {
+        socket.emit("startGame", currentRoom);
     }
-});
+
+    socket.on("gameStarted", () => {
+
+        document.getElementById("gameStatus").textContent =
+            "Game Started! Guess a number (1-100)";
+
+        document.getElementById("playAgainBtn").style.display = "none";
+
+        const area = document.getElementById("gameArea");
+        area.innerHTML = "";
+
+        const input = document.createElement("input");
+        input.id = "guessInput";
+        input.placeholder = "Enter guess";
+
+        const btn = document.createElement("button");
+        btn.textContent = "Submit Guess";
+        btn.onclick = () => {
+            const guess = document.getElementById("guessInput").value;
+            socket.emit("guess", {
+                roomCode: currentRoom,
+                guess: guess
+            });
+        };
+
+        area.appendChild(input);
+        area.appendChild(btn);
+    });
+
+    socket.on("hint", (message) => {
+        document.getElementById("gameStatus").textContent = message;
+    });
+
+    socket.on("gameOver", ({ winnerId, winnerAttempts }) => {
+
+        document.getElementById("playAgainBtn").style.display = "block";
+
+        if (winnerId === myId) {
+            document.getElementById("gameStatus").textContent =
+                "YOU WON in " + winnerAttempts + " attempts!";
+        } else {
+            document.getElementById("gameStatus").textContent =
+                "Game Over! Someone guessed it.";
+        }
+    });
+
+    function playAgain() {
+        socket.emit("playAgain", currentRoom);
+    }
+
+    function toggleDark() {
+        document.body.classList.toggle("dark");
+    }
 </script>
 
 </body>
