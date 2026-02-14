@@ -14,9 +14,19 @@
 <h3>Players</h3>
 <ul id="playersList"></ul>
 
+<button id="startBtn" style="display:none;" onclick="startGame()">Start Game</button>
+
+<h3 id="gameStatus"></h3>
+
 <script src="/socket.io/socket.io.js"></script>
 <script>
 const socket = io();
+let currentRoom = "";
+let myId = "";
+
+socket.on("connect", () => {
+    myId = socket.id;
+});
 
 function joinRoom() {
     const name = document.getElementById("nameInput").value;
@@ -24,22 +34,36 @@ function joinRoom() {
 
     if (!name || !room) return;
 
+    currentRoom = room;
+
     socket.emit("joinRoom", {
         roomCode: room,
         name: name
     });
 }
 
-socket.on("updatePlayers", (players) => {
+socket.on("updatePlayers", ({ players, host }) => {
 
     const list = document.getElementById("playersList");
     list.innerHTML = "";
 
     for (let id in players) {
         const li = document.createElement("li");
-        li.innerText = players[id].name;
+        li.innerText = players[id].name + (id === host ? " (Host)" : "");
         list.appendChild(li);
     }
+
+    if (myId === host) {
+        document.getElementById("startBtn").style.display = "block";
+    }
+});
+
+function startGame() {
+    socket.emit("startGame", currentRoom);
+}
+
+socket.on("gameStarted", () => {
+    document.getElementById("gameStatus").innerText = "Game Started! Guess 1-100";
 });
 </script>
 

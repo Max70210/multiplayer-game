@@ -12,8 +12,6 @@ let rooms = {};
 
 io.on("connection", (socket) => {
 
-    console.log("User connected:", socket.id);
-
     socket.on("joinRoom", ({ roomCode, name }) => {
 
         socket.join(roomCode);
@@ -21,6 +19,7 @@ io.on("connection", (socket) => {
         if (!rooms[roomCode]) {
             rooms[roomCode] = {
                 players: {},
+                host: socket.id,
                 secretNumber: null,
                 gameActive: false
             };
@@ -28,15 +27,34 @@ io.on("connection", (socket) => {
 
         rooms[roomCode].players[socket.id] = {
             name,
-            score: 0,
             attempts: 0
         };
 
-        io.to(roomCode).emit("updatePlayers", rooms[roomCode].players);
+        io.to(roomCode).emit("updatePlayers", {
+            players: rooms[roomCode].players,
+            host: rooms[roomCode].host
+        });
+    });
+
+    socket.on("startGame", (roomCode) => {
+
+        if (!rooms[roomCode]) return;
+
+        if (socket.id === rooms[roomCode].host) {
+
+            rooms[roomCode].secretNumber = Math.floor(Math.random() * 100) + 1;
+            rooms[roomCode].gameActive = true;
+
+            for (let id in rooms[roomCode].players) {
+                rooms[roomCode].players[id].attempts = 0;
+            }
+
+            io.to(roomCode).emit("gameStarted");
+        }
     });
 
 });
-    
+
 server.listen(process.env.PORT || 3000, () => {
     console.log("Server running...");
 });
