@@ -4,6 +4,44 @@
     <title>Multiplayer Game</title>
 </head>
 <body>
-    <h1>Game Running 🔥</h1>
+
+<h2>Join Room</h2>
+
+<input id="nameInput" placeholder="Your Name">
+<input id="roomInput" placeholder="Room Code">
+<button onclick="joinRoom()">Join</button>
+
+<h3>Players</h3>
+<ul id="playersList"></ul>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io();
+
+function joinRoom() {
+    const name = document.getElementById("nameInput").value;
+    const room = document.getElementById("roomInput").value;
+
+    if (!name || !room) return;
+
+    socket.emit("joinRoom", {
+        roomCode: room,
+        name: name
+    });
+}
+
+socket.on("updatePlayers", (players) => {
+
+    const list = document.getElementById("playersList");
+    list.innerHTML = "";
+
+    for (let id in players) {
+        const li = document.createElement("li");
+        li.innerText = players[id].name;
+        list.appendChild(li);
+    }
+});
+</script>
+
 </body>
 </html>
