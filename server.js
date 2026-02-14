@@ -17,31 +17,22 @@ io.on("connection", (socket) => {
         socket.join(roomCode);
 
         if (!rooms[roomCode]) {
-            rooms[roomCode] = {
-                players: [],
-                host: socket.id,
-                number: null,
-                attempts: {},
-                gameStarted: false
-            };
+            rooms[roomCode] = [];
         }
 
-        rooms[roomCode].players.push({
+        rooms[roomCode].push({
             id: socket.id,
             name: name
         });
 
-        io.to(roomCode).emit("updatePlayers", rooms[roomCode].players);
+        io.to(roomCode).emit("updatePlayers", rooms[roomCode]);
     });
 
     socket.on("startGame", (roomCode) => {
 
-        const room = rooms[roomCode];
-        if (!room) return;
-
-        room.number = Math.floor(Math.random() * 100) + 1;
-        room.gameStarted = true;
-        room.attempts = {};
+        const number = Math.floor(Math.random() * 100) + 1;
+        rooms[roomCode].number = number;
+        rooms[roomCode].attempts = 0;
 
         io.to(roomCode).emit("gameStarted");
     });
@@ -49,42 +40,32 @@ io.on("connection", (socket) => {
     socket.on("guess", ({ roomCode, guess }) => {
 
         const room = rooms[roomCode];
-        if (!room || !room.gameStarted) return;
+        if (!room) return;
 
-        if (!room.attempts[socket.id]) {
-            room.attempts[socket.id] = 0;
-        }
-
-        room.attempts[socket.id]++;
+        room.attempts++;
 
         if (guess == room.number) {
-
-            const winnerAttempts = room.attempts[socket.id];
-
-            io.to(roomCode).emit("gameOver", {
-                winnerId: socket.id,
-                winnerAttempts
-            });
-
-            room.gameStarted = false;
-
+            io.to(roomCode).emit("gameOver", socket.id, room.attempts);
         } else if (guess < room.number) {
-            socket.emit("hint", "Too Low!");
+            io.to(socket.id).emit("hint", "Too low!");
         } else {
-            socket.emit("hint", "Too High!");
+            io.to(socket.id).emit("hint", "Too high!");
         }
     });
 
     socket.on("disconnect", () => {
-        for (let roomCode in rooms) {
-            rooms[roomCode].players =
-                rooms[roomCode].players.filter(p => p.id !== socket.id);
 
-            io.to(roomCode).emit("updatePlayers", rooms[roomCode].players);
+        for (let roomCode in rooms) {
+            rooms[roomCode] = rooms[roomCode].filter(p => p.id !== socket.id);
+
+            if (rooms[roomCode].length === 0) {
+                delete rooms[roomCode];
+            } else {
+                io.to(roomCode).emit("updatePlayers", rooms[roomCode]);
+            }
         }
     });
 });
 
-server.listen(process.env.PORT || 3000, () => {
-    console.log("Server running...");
-});
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => console.log("Server running..."));

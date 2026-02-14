@@ -1,3 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Multiplayer Game</title>
+</head>
+<body>
+
+<h2>Join Room</h2>
+<input id="nameInput" placeholder="Your Name">
+<input id="roomInput" placeholder="Room Code">
+<button onclick="joinRoom()">Join</button>
+
+<h3>Players</h3>
+<ul id="playersList"></ul>
+
+<button id="startBtn" style="display:none;" onclick="startGame()">Start Game</button>
+
+<h3 id="gameStatus"></h3>
+
 <script src="/socket.io/socket.io.js"></script>
 <script>
 const socket = io();
@@ -27,19 +46,18 @@ socket.on("updatePlayers", (players) => {
     const list = document.getElementById("playersList");
     list.innerHTML = "";
 
-    players.forEach(player => {
+    players.forEach((player, index) => {
         const li = document.createElement("li");
 
-        if (player.id === players[0].id) {
+        if (index === 0)
             li.textContent = player.name + " (Host)";
-        } else {
+        else
             li.textContent = player.name;
-        }
 
         list.appendChild(li);
     });
 
-    if (players[0].id === myId) {
+    if (players.length > 0 && players[0].id === myId) {
         document.getElementById("startBtn").style.display = "block";
     }
 });
@@ -50,38 +68,44 @@ function startGame() {
 
 socket.on("gameStarted", () => {
 
-    document.getElementById("gameStatus").textContent = "Game Started! Guess a number (1-100)";
+    document.getElementById("gameStatus").textContent =
+        "Game Started! Guess a number (1-100)";
 
-    const guessInput = document.createElement("input");
-    guessInput.id = "guessInput";
-    guessInput.placeholder = "Enter guess";
+    const input = document.createElement("input");
+    input.id = "guessInput";
+    input.placeholder = "Enter guess";
 
-    const guessBtn = document.createElement("button");
-    guessBtn.textContent = "Submit Guess";
-    guessBtn.onclick = () => {
+    const btn = document.createElement("button");
+    btn.textContent = "Submit Guess";
+
+    btn.onclick = () => {
         const guess = document.getElementById("guessInput").value;
+
         socket.emit("guess", {
             roomCode: currentRoom,
             guess: guess
         });
     };
 
-    document.body.appendChild(guessInput);
-    document.body.appendChild(guessBtn);
+    document.body.appendChild(input);
+    document.body.appendChild(btn);
 });
 
-socket.on("hint", (message) => {
-    document.getElementById("gameStatus").textContent = message;
+socket.on("hint", (msg) => {
+    document.getElementById("gameStatus").textContent = msg;
 });
 
-socket.on("gameOver", ({ winnerId, winnerAttempts }) => {
+socket.on("gameOver", (winnerId, attempts) => {
 
     if (winnerId === myId) {
         document.getElementById("gameStatus").textContent =
-            "YOU WON in " + winnerAttempts + " attempts 🎉";
+            "YOU WON in " + attempts + " attempts!";
     } else {
         document.getElementById("gameStatus").textContent =
-            "Game Over! Someone guessed it!";
+            "Game Over! Someone guessed it.";
     }
 });
 </script>
+
+</body>
+</html>
