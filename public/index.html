@@ -1,164 +1,381 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Multiplayer Game</title>
-
-    <style>
-        body {
-            font-family: Arial;
-            transition: 0.3s;
-        }
-
-        .dark {
-            background: #111;
-            color: white;
-        }
-
-        button {
-            padding: 6px 12px;
-            cursor: pointer;
-            margin: 4px;
-        }
-
-        button:hover {
-            transform: scale(1.05);
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Guess the Number</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #080b12;
+      --surface: #0e1420;
+      --card: #131a27;
+      --border: rgba(255,255,255,0.07);
+      --accent: #6ee7b7;
+      --accent2: #38bdf8;
+      --danger: #f87171;
+      --warn: #fbbf24;
+      --text: #f1f5f9;
+      --muted: #64748b;
+      --radius: 16px;
+    }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 2rem 1rem;
+      background-image: radial-gradient(ellipse at 20% 20%, rgba(110,231,183,0.04) 0%, transparent 60%),
+                        radial-gradient(ellipse at 80% 80%, rgba(56,189,248,0.04) 0%, transparent 60%);
+    }
+    .container { width: 100%; max-width: 480px; }
+    .header { text-align: center; margin-bottom: 2rem; }
+    .header .badge {
+      display: inline-block;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      color: var(--accent);
+      background: rgba(110,231,183,0.08);
+      border: 1px solid rgba(110,231,183,0.2);
+      border-radius: 100px;
+      padding: 4px 14px;
+      margin-bottom: 12px;
+    }
+    .header h1 {
+      font-size: 2.2rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      background: linear-gradient(135deg, #f1f5f9 0%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .header p { color: var(--muted); font-size: 14px; margin-top: 6px; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+    }
+    .card-label {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 12px;
+    }
+    .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+    .input-wrap { display: flex; flex-direction: column; gap: 6px; }
+    .input-wrap label { font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: 0.06em; text-transform: uppercase; }
+    input[type="text"], input[type="number"] {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 14px;
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input:focus { border-color: var(--accent); }
+    input::placeholder { color: var(--muted); }
+    input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: none;
+      font-family: 'Syne', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+      letter-spacing: 0.02em;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary { background: var(--accent); color: #080b12; }
+    .btn-primary:hover { background: #a7f3d0; }
+    .btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+    .btn-secondary:hover { border-color: rgba(255,255,255,0.2); }
+    .btn-danger { background: rgba(248,113,113,0.15); color: var(--danger); border: 1px solid rgba(248,113,113,0.25); }
+    .btn-danger:hover { background: rgba(248,113,113,0.25); }
+    .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .players-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+    .players-list li {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px;
+      background: var(--surface);
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      font-size: 14px; font-weight: 600;
+    }
+    .player-avatar {
+      width: 30px; height: 30px; border-radius: 50%;
+      background: rgba(110,231,183,0.15);
+      border: 1px solid rgba(110,231,183,0.3);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; color: var(--accent); flex-shrink: 0;
+    }
+    .host-badge {
+      margin-left: auto;
+      font-size: 10px; font-weight: 600; letter-spacing: 0.08em;
+      color: var(--warn); background: rgba(251,191,36,0.1);
+      border: 1px solid rgba(251,191,36,0.2);
+      border-radius: 100px; padding: 2px 8px;
+    }
+    .empty-state { color: var(--muted); font-size: 13px; text-align: center; padding: 12px 0; }
+    .score-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+    .score-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 14px; background: var(--surface);
+      border-radius: 10px; border: 1px solid var(--border); font-size: 14px;
+    }
+    .score-name { font-weight: 600; }
+    .score-wins { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--accent); font-weight: 500; }
+    .status-box {
+      border-radius: 12px; padding: 16px 20px;
+      text-align: center; font-size: 15px; font-weight: 700;
+      margin-bottom: 1rem; border: 1px solid var(--border);
+      background: var(--surface); transition: all 0.3s;
+      min-height: 56px; display: flex; align-items: center; justify-content: center;
+    }
+    .status-box.too-low { border-color: rgba(56,189,248,0.4); color: var(--accent2); background: rgba(56,189,248,0.06); }
+    .status-box.too-high { border-color: rgba(248,113,113,0.4); color: var(--danger); background: rgba(248,113,113,0.06); }
+    .status-box.win { border-color: rgba(110,231,183,0.4); color: var(--accent); background: rgba(110,231,183,0.06); }
+    .status-box.waiting { color: var(--muted); }
+    .guess-row { display: flex; gap: 10px; }
+    .guess-row input { flex: 1; font-size: 18px; text-align: center; letter-spacing: 0.1em; }
+    .guess-row .btn { width: auto; padding: 12px 20px; white-space: nowrap; }
+    .range-bar {
+      height: 4px; background: var(--surface); border-radius: 100px;
+      margin: 12px 0; position: relative; overflow: hidden; border: 1px solid var(--border);
+    }
+    .range-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent2), var(--accent));
+      border-radius: 100px; transition: width 0.4s ease; width: 0%;
+    }
+    .range-labels {
+      display: flex; justify-content: space-between;
+      font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted);
+    }
+    .hidden { display: none !important; }
+    .section-gap { margin-bottom: 1rem; }
+    .attempt-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      color: var(--muted); background: var(--surface);
+      border: 1px solid var(--border); border-radius: 100px;
+      padding: 4px 12px; margin-bottom: 12px;
+    }
+    .attempt-badge span { color: var(--text); font-weight: 500; }
+    .connected-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--accent); display: inline-block; margin-right: 6px;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    .room-tag {
+      font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      color: var(--accent2); background: rgba(56,189,248,0.08);
+      border: 1px solid rgba(56,189,248,0.2);
+      border-radius: 100px; padding: 3px 12px;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .top-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+  </style>
 </head>
-
 <body>
+<div class="container">
 
-<h2>Join Room</h2>
+  <div class="header">
+    <div class="badge">MULTIPLAYER</div>
+    <h1>Guess the Number</h1>
+    <p>Race your friends to find the secret number</p>
+  </div>
 
-<input id="nameInput" placeholder="Your Name">
-<input id="roomInput" placeholder="Room Code">
-<button onclick="joinRoom()">Join</button>
-<button onclick="toggleDark()">Toggle Dark</button>
+  <!-- JOIN -->
+  <div class="card" id="joinCard">
+    <div class="card-label">Join a room</div>
+    <div class="input-row">
+      <div class="input-wrap">
+        <label>Your Name</label>
+        <input type="text" id="nameInput" placeholder="e.g. Max" />
+      </div>
+      <div class="input-wrap">
+        <label>Room Code</label>
+        <input type="text" id="roomInput" placeholder="e.g. GAME1" />
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="joinRoom()">Join Room</button>
+      <button class="btn btn-secondary" onclick="createRoom()">Create Room</button>
+    </div>
+  </div>
 
-<h3>Players</h3>
-<ul id="playersList"></ul>
+  <!-- LOBBY -->
+  <div id="lobbySection" class="hidden">
+    <div class="top-bar">
+      <div><span class="connected-dot"></span><small style="color:var(--muted);font-size:12px;">Connected</small></div>
+      <span id="roomTag" class="room-tag"></span>
+    </div>
+    <div class="card section-gap">
+      <div class="card-label">Players in room</div>
+      <ul class="players-list" id="playersList"><li class="empty-state">Waiting for players...</li></ul>
+    </div>
+    <div class="card section-gap">
+      <div class="card-label">Scoreboard</div>
+      <ul class="score-list" id="scoreboard"><li class="empty-state">No scores yet</li></ul>
+    </div>
+    <div id="startWrapper" class="hidden section-gap">
+      <button class="btn btn-primary" onclick="startGame()">Start Game</button>
+    </div>
+  </div>
 
-<h3>Scoreboard</h3>
-<ul id="scoreboard"></ul>
+  <!-- GAME -->
+  <div id="gameSection" class="hidden">
+    <div class="top-bar">
+      <div><span class="connected-dot"></span><small style="color:var(--muted);font-size:12px;">Connected</small></div>
+      <span id="roomTag2" class="room-tag"></span>
+    </div>
+    <div id="statusBox" class="status-box waiting">Waiting...</div>
+    <div class="card section-gap" id="guessCard">
+      <div class="card-label">Your guess</div>
+      <div class="attempt-badge">Attempts: <span id="attemptCount">0</span></div>
+      <div class="guess-row">
+        <input type="number" id="guessInput" placeholder="1 – 100" min="1" max="100" />
+        <button class="btn btn-primary" onclick="submitGuess()">Guess</button>
+      </div>
+      <div class="range-bar"><div class="range-fill" id="rangeFill"></div></div>
+      <div class="range-labels"><span>1</span><span>100</span></div>
+    </div>
+    <div class="card section-gap">
+      <div class="card-label">Scoreboard</div>
+      <ul class="score-list" id="scoreboard2"><li class="empty-state">No scores yet</li></ul>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary hidden" id="playAgainBtn" onclick="playAgain()">Play Again</button>
+      <button class="btn btn-danger hidden" id="leaveBtn" onclick="location.reload()">Leave Game</button>
+    </div>
+  </div>
 
-<button id="startBtn" style="display:none;" onclick="startGame()">Start Game</button>
-
-<h3 id="gameStatus"></h3>
-
-<div id="gameArea"></div>
-
-<button id="playAgainBtn" style="display:none;" onclick="playAgain()">Play Again</button>
-
+</div>
 <script src="/socket.io/socket.io.js"></script>
 <script>
-    const socket = io();
+  const socket = io();
+  let currentRoom = '', myId = '', attempts = 0, lastGuess = 0;
 
-    let currentRoom = "";
-    let myId = "";
+  socket.on('connect', () => { myId = socket.id; });
 
-    socket.on("connect", () => {
-        myId = socket.id;
+  function getInitials(name) { return name.slice(0, 2).toUpperCase(); }
+
+  function createRoom() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = '';
+    for (let i = 0; i < 5; i++) code += chars[Math.floor(Math.random() * chars.length)];
+    document.getElementById('roomInput').value = code;
+    joinRoom();
+  }
+
+  function joinRoom() {
+    const name = document.getElementById('nameInput').value.trim();
+    const room = document.getElementById('roomInput').value.trim().toUpperCase();
+    if (!name || !room) { alert('Please enter your name and a room code.'); return; }
+    currentRoom = room;
+    socket.emit('joinRoom', { roomCode: room, name });
+    document.getElementById('joinCard').classList.add('hidden');
+    document.getElementById('lobbySection').classList.remove('hidden');
+    document.getElementById('roomTag').innerHTML = '# ' + room;
+    document.getElementById('roomTag2').innerHTML = '# ' + room;
+  }
+
+  socket.on('updatePlayers', (players) => {
+    const list = document.getElementById('playersList');
+    list.innerHTML = '';
+    players.forEach((player, i) => {
+      const li = document.createElement('li');
+      li.innerHTML = `<div class="player-avatar">${getInitials(player.name)}</div><span>${player.name}</span>${i === 0 ? '<span class="host-badge">HOST</span>' : ''}`;
+      list.appendChild(li);
     });
+    if (players[0].id === myId) document.getElementById('startWrapper').classList.remove('hidden');
+  });
 
-    function joinRoom() {
-        const name = document.getElementById("nameInput").value;
-        const room = document.getElementById("roomInput").value;
-
-        if (!name || !room) return;
-
-        currentRoom = room;
-
-        socket.emit("joinRoom", { roomCode: room, name: name });
-    }
-
-    socket.on("updatePlayers", (players) => {
-
-        const list = document.getElementById("playersList");
-        list.innerHTML = "";
-
-        players.forEach((player, index) => {
-            const li = document.createElement("li");
-
-            if (index === 0)
-                li.textContent = player.name + " (Host)";
-            else
-                li.textContent = player.name;
-
-            list.appendChild(li);
-        });
-
-        if (players[0].id === myId)
-            document.getElementById("startBtn").style.display = "block";
+  function updateScoreboardEl(id, wins) {
+    const board = document.getElementById(id);
+    board.innerHTML = '';
+    const entries = Object.entries(wins);
+    if (!entries.length) { board.innerHTML = '<li class="empty-state">No scores yet</li>'; return; }
+    entries.sort((a, b) => b[1] - a[1]);
+    entries.forEach(([name, w]) => {
+      const li = document.createElement('li');
+      li.className = 'score-item';
+      li.innerHTML = `<span class="score-name">${name}</span><span class="score-wins">${w} win${w !== 1 ? 's' : ''}</span>`;
+      board.appendChild(li);
     });
+  }
 
-    socket.on("updateScoreboard", (wins) => {
-        const board = document.getElementById("scoreboard");
-        board.innerHTML = "";
+  socket.on('updateScoreboard', (wins) => { updateScoreboardEl('scoreboard', wins); updateScoreboardEl('scoreboard2', wins); });
 
-        for (let player in wins) {
-            const li = document.createElement("li");
-            li.textContent = player + " : " + wins[player] + " wins";
-            board.appendChild(li);
-        }
-    });
+  function startGame() { socket.emit('startGame', currentRoom); }
 
-    function startGame() {
-        socket.emit("startGame", currentRoom);
-    }
+  socket.on('gameStarted', () => {
+    attempts = 0; lastGuess = 0;
+    document.getElementById('attemptCount').textContent = '0';
+    document.getElementById('rangeFill').style.width = '0%';
+    document.getElementById('lobbySection').classList.add('hidden');
+    document.getElementById('gameSection').classList.remove('hidden');
+    document.getElementById('playAgainBtn').classList.add('hidden');
+    document.getElementById('leaveBtn').classList.add('hidden');
+    document.getElementById('guessCard').classList.remove('hidden');
+    document.getElementById('guessInput').value = '';
+    setStatus('Game started! Guess a number between 1 and 100 🎯', '');
+  });
 
-    socket.on("gameStarted", () => {
+  function submitGuess() {
+    const guess = parseInt(document.getElementById('guessInput').value);
+    if (!guess || guess < 1 || guess > 100) { setStatus('Enter a number between 1 and 100', 'too-high'); return; }
+    lastGuess = guess; attempts++;
+    document.getElementById('attemptCount').textContent = attempts;
+    socket.emit('guess', { roomCode: currentRoom, guess });
+    document.getElementById('guessInput').value = '';
+  }
 
-        document.getElementById("gameStatus").textContent =
-            "Game Started! Guess a number (1-100)";
+  socket.on('hint', (msg) => {
+    const pct = ((lastGuess - 1) / 99) * 100;
+    document.getElementById('rangeFill').style.width = pct + '%';
+    if (msg === 'Too Low!') setStatus('⬆ Too Low! Go higher', 'too-low');
+    else setStatus('⬇ Too High! Go lower', 'too-high');
+  });
 
-        document.getElementById("playAgainBtn").style.display = "none";
+  socket.on('gameOver', ({ winnerId, winnerAttempts }) => {
+    document.getElementById('guessCard').classList.add('hidden');
+    document.getElementById('playAgainBtn').classList.remove('hidden');
+    document.getElementById('leaveBtn').classList.remove('hidden');
+    setStatus(winnerId === myId ? '🎉 YOU WON in ' + winnerAttempts + ' attempts!' : 'Someone else got it. Better luck next round!', winnerId === myId ? 'win' : 'too-high');
+  });
 
-        const area = document.getElementById("gameArea");
-        area.innerHTML = "";
+  function playAgain() { socket.emit('playAgain', currentRoom); }
 
-        const input = document.createElement("input");
-        input.id = "guessInput";
-        input.placeholder = "Enter guess";
+  function setStatus(msg, cls) {
+    const box = document.getElementById('statusBox');
+    box.className = 'status-box ' + (cls || 'waiting');
+    box.textContent = msg;
+  }
 
-        const btn = document.createElement("button");
-        btn.textContent = "Submit Guess";
-        btn.onclick = () => {
-            const guess = document.getElementById("guessInput").value;
-            socket.emit("guess", {
-                roomCode: currentRoom,
-                guess: guess
-            });
-        };
-
-        area.appendChild(input);
-        area.appendChild(btn);
-    });
-
-    socket.on("hint", (message) => {
-        document.getElementById("gameStatus").textContent = message;
-    });
-
-    socket.on("gameOver", ({ winnerId, winnerAttempts }) => {
-
-        document.getElementById("playAgainBtn").style.display = "block";
-
-        if (winnerId === myId) {
-            document.getElementById("gameStatus").textContent =
-                "YOU WON in " + winnerAttempts + " attempts!";
-        } else {
-            document.getElementById("gameStatus").textContent =
-                "Game Over! Someone guessed it.";
-        }
-    });
-
-    function playAgain() {
-        socket.emit("playAgain", currentRoom);
-    }
-
-    function toggleDark() {
-        document.body.classList.toggle("dark");
-    }
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    if (!document.getElementById('gameSection').classList.contains('hidden') && !document.getElementById('guessCard').classList.contains('hidden')) submitGuess();
+    else if (!document.getElementById('joinCard').classList.contains('hidden')) joinRoom();
+  });
 </script>
-
 </body>
 </html>
